@@ -1,0 +1,17 @@
+*.exe
+log
+log/
+log/* 
+*.log
+bin
+bin/*
+/bin
+/bin/*
+proxy.go
+core/nativeApi
+/logDir/*
+logDir/*
+test.py
+.history
+.idea
+/vendor

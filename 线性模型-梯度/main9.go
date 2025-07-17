@@ -163,6 +163,10 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		color.RGBA{0, 255, 255, 255},  // 青色
 		color.RGBA{255, 255, 0, 255},  // 黄色
 		color.RGBA{128, 128, 128, 255}, // 灰色
+		color.RGBA{18, 218, 18, 255},  
+		color.RGBA{181, 28, 8, 255}, 
+		color.RGBA{81, 32, 48, 255},  
+		color.RGBA{251,54, 88, 255},  
 	}
 
 	// 绘制所有点（按聚类颜色区分）

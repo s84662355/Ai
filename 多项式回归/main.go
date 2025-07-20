@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image/color"
 	"math"
+	"math/rand"
 	"os"
 	"time"
 
@@ -22,12 +23,12 @@ const (
 	xAxisYPos    = screenHeight / 2.0
 	yAxisXPos    = screenWidth / 2.0
 	// 数学坐标系范围
-	xMin = -30.0
-	xMax = 30.0
+	xMin = -10.0
+	xMax = 10.0
 	yMin = -20.0
-	yMax = 20.0
+	yMax = 100.0
 	// 控制更新间隔（秒）
-	updateInterval = 0.0001
+	updateInterval = 0.001
 )
 
 // 颜色定义
@@ -45,50 +46,66 @@ var (
 var (
 	dataSize      int = 2000
 	data          [][]float64
-	w, b          float64
-	lr            = 0.0005
-	numIterations = 200000
+	a, b, c       float64
+	lr            = 0.0001
+	numIterations = 50000
 	step          = 0
 	ttfFont       font.Face
 	lastUpdate    time.Time // 记录上次更新时间
-	tw, tb        float64   = 1.72212862, 2.65145218
-	Sigma         float64   = 1.548564
+	ta, tb, tc    float64   = 1.234, -3.54, 2.45 // 真实参数
+	Sigma         float64   = 2.0                 // 噪声水平
 )
 
+// 初始化随机数生成器
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
+
+// 生成符合二次函数的样本数据
 func initData(numSamples int) {
 	data = make([][]float64, 0, numSamples)
 	for i := 0; i < numSamples; i++ {
-		x := distuv.Uniform{Min: xMin, Max: xMax}.Rand()
-		eps := distuv.Normal{Mu: 0, Sigma: Sigma}.Rand()
-		y := tw*x + tb + eps
+		x := rand.Float64()*(xMax-xMin) + xMin
+		eps := distuv.Normal{Mu: 0, Sigma: Sigma}.Rand() // 高斯噪声
+		y := ta*x*x + tb*x + tc + eps     // 真实函数+噪声
 		data = append(data, []float64{x, y})
 	}
 }
 
-func Mse(b, w float64, points [][]float64) float64 {
+// 计算二次函数的均方误差
+func Mse(a, b, c float64, points [][]float64) float64 {
 	totalError := 0.0
 	for _, p := range points {
 		x, y := p[0], p[1]
-		totalError += math.Pow(y-(w*x+b), 2)
+		// 计算预测值与实际值的误差平方
+		totalError += math.Pow(y-(a*x*x+b*x+c), 2)
 	}
 	return totalError / float64(len(points))
 }
 
-func StepGradient(b, w float64, points [][]float64, lr float64) (float64, float64) {
-	bGrad, wGrad := 0.0, 0.0
+// 执行一次梯度下降步骤，更新参数
+func StepGradient(a, b, c float64, points [][]float64, lr float64) (float64, float64, float64) {
+	aGrad, bGrad, cGrad := 0.0, 0.0, 0.0
 	M := float64(len(points))
+	
 	for _, p := range points {
 		x, y := p[0], p[1]
-		err := w*x + b - y
-		bGrad += (2 / M) * err
-		wGrad += (2 / M) * x * err
+		err := a*x*x + b*x + c - y
+		
+		// 计算各参数的梯度
+		aGrad += (2 / M) * x * x * err
+		bGrad += (2 / M) * x * err
+		cGrad += (2 / M) * err
 	}
-	return b - lr*bGrad, w - lr*wGrad
+	
+	// 更新参数
+	return a - lr*aGrad, b - lr*bGrad, c - lr*cGrad
 }
 
+// 游戏结构
 type Game struct{}
 
-// Update 控制更新节奏，每0.5秒执行一次梯度下降
+// Update 控制更新节奏，定期执行梯度下降
 func (g *Game) Update() error {
 	// 首次运行初始化时间
 	if lastUpdate.IsZero() {
@@ -99,17 +116,18 @@ func (g *Game) Update() error {
 	// 检查是否达到更新间隔
 	now := time.Now()
 	if now.Sub(lastUpdate) >= time.Duration(updateInterval*float64(time.Second)) && step < numIterations {
-		b, w = StepGradient(b, w, data, lr)
+		a, b, c = StepGradient(a, b, c, data, lr)
 		step++
-		if step%2 == 0 {
-			loss := Mse(b, w, data)
-			fmt.Printf("Iteration:%d, loss:%f, w:%f, b:%f\n", step, loss, w, b)
+		if step%100 == 0 {
+			loss := Mse(a, b, c, data)
+			fmt.Printf("Iteration:%d, loss:%f, a:%f, b:%f, c:%f\n", step, loss, a, b, c)
 		}
 		lastUpdate = now
 	}
 	return nil
 }
 
+// Draw 绘制当前状态
 func (g *Game) Draw(screen *ebiten.Image) {
 	screen.Fill(color.RGBA{0, 0, 0, 255})
 
@@ -121,11 +139,11 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	// 绘制样本点
 	drawPoints(screen, data)
 
-	// 绘制当前拟合直线
-	drawLine(screen, w, b, fitLineColor)
+	// 绘制当前拟合曲线
+	drawCurve(screen, a, b, c, fitLineColor)
 
-	// 绘制真实直线
-	drawLine(screen, tw, tb, trueLineColor)
+	// 绘制真实曲线
+	drawCurve(screen, ta, tb, tc, trueLineColor)
 
 	// 绘制图例
 	drawLegend(screen)
@@ -137,10 +155,12 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	drawProgressBar(screen)
 }
 
+// Layout 返回屏幕尺寸
 func (g *Game) Layout(_, _ int) (int, int) {
 	return screenWidth, screenHeight
 }
 
+// 绘制网格线
 func drawGrid(screen *ebiten.Image) {
 	// 绘制垂直网格线
 	for x := xMin; x <= xMax; x += 1.0 {
@@ -149,12 +169,13 @@ func drawGrid(screen *ebiten.Image) {
 	}
 
 	// 绘制水平网格线
-	for y := yMin; y <= yMax; y += 1.0 {
+	for y := yMin; y <= yMax; y += 5.0 {
 		yScreen := math.Round((yMax - y) / (yMax - yMin) * screenHeight)
 		ebitenutil.DrawLine(screen, 0, yScreen, screenWidth, yScreen, gridColor)
 	}
 }
 
+// 绘制坐标轴
 func drawAxis(screen *ebiten.Image) {
 	// 绘制 x 轴
 	ebitenutil.DrawLine(screen, 0, xAxisYPos, screenWidth, xAxisYPos, axisColor)
@@ -171,6 +192,7 @@ func drawAxis(screen *ebiten.Image) {
 	ebitenutil.DrawLine(screen, yAxisXPos+arrowSize/2, arrowSize, yAxisXPos, 0, axisColor)
 }
 
+// 绘制坐标轴标签
 func drawAxisLabels(screen *ebiten.Image) {
 	// 绘制 x 轴刻度
 	for x := xMin; x <= xMax; x += 2.0 {
@@ -187,7 +209,7 @@ func drawAxisLabels(screen *ebiten.Image) {
 	}
 
 	// 绘制 y 轴刻度
-	for y := yMin; y <= yMax; y += 2.0 {
+	for y := yMin; y <= yMax; y += 10.0 {
 		yScreen := math.Round((yMax - y) / (yMax - yMin) * screenHeight)
 		ebitenutil.DrawLine(screen, yAxisXPos-5, yScreen, yAxisXPos+5, yScreen, axisColor)
 		if y != 0 { // 0 点已被 x 轴标签覆盖
@@ -210,6 +232,7 @@ func drawAxisLabels(screen *ebiten.Image) {
 	}
 }
 
+// 绘制数据点
 func drawPoints(screen *ebiten.Image, points [][]float64) {
 	for _, p := range points {
 		x, y := p[0], p[1]
@@ -219,18 +242,25 @@ func drawPoints(screen *ebiten.Image, points [][]float64) {
 	}
 }
 
-func drawLine(screen *ebiten.Image, w, b float64, c color.Color) {
-	x1, y1 := xMin, w*xMin+b
-	x2, y2 := xMax, w*xMax+b
-
-	x1Screen := (x1 - xMin) / (xMax - xMin) * screenWidth
-	y1Screen := (yMax - y1) / (yMax - yMin) * screenHeight
-	x2Screen := (x2 - xMin) / (xMax - xMin) * screenWidth
-	y2Screen := (yMax - y2) / (yMax - yMin) * screenHeight
-
-	ebitenutil.DrawLine(screen, x1Screen, y1Screen, x2Screen, y2Screen, c)
+// 绘制二次曲线
+func drawCurve(screen *ebiten.Image, a, b, c float64, color color.Color) {
+	// 绘制足够密集的点来近似曲线
+	step := (xMax - xMin) / 1000
+	for x := xMin; x < xMax; x += step {
+		y := a*x*x + b*x + c
+		x1Screen := (x - xMin) / (xMax - xMin) * screenWidth
+		y1Screen := (yMax - y) / (yMax - yMin) * screenHeight
+		
+		x2 := x + step
+		y2 := a*x2*x2 + b*x2 + c
+		x2Screen := (x2 - xMin) / (xMax - xMin) * screenWidth
+		y2Screen := (yMax - y2) / (yMax - yMin) * screenHeight
+		
+		ebitenutil.DrawLine(screen, x1Screen, y1Screen, x2Screen, y2Screen, color)
+	}
 }
 
+// 绘制图例
 func drawLegend(screen *ebiten.Image) {
 	legendX := 20
 	legendY := 20
@@ -243,46 +273,48 @@ func drawLegend(screen *ebiten.Image) {
 		ebitenutil.DebugPrintAt(screen, "Legend:", legendX, legendY)
 	}
 
-	// 绘制真实直线图例
+	// 绘制真实曲线图例
 	ebitenutil.DrawLine(screen, float64(legendX), float64(legendY+legendSpacing),
 		float64(legendX+30), float64(legendY+legendSpacing), trueLineColor)
 	if ttfFont != nil {
-		text.Draw(screen, fmt.Sprintf("True Line (y=%.8fx+%.8f)", tw, tb), ttfFont, legendX+40, legendY+legendSpacing+5, labelColor)
+		text.Draw(screen, fmt.Sprintf("True Curve (y=%.3fx²+%.3fx+%.3f)", ta, tb, tc), ttfFont, legendX+40, legendY+legendSpacing+5, labelColor)
 	} else {
-		ebitenutil.DebugPrintAt(screen, fmt.Sprintf("True Line (y=%.8fx+%.8f)", tw, tb), legendX+40, legendY+legendSpacing-5)
+		ebitenutil.DebugPrintAt(screen, fmt.Sprintf("True Curve (y=%.3fx²+%.3fx+%.3f)", ta, tb, tc), legendX+40, legendY+legendSpacing-5)
 	}
 
-	// 绘制拟合直线图例
+	// 绘制拟合曲线图例
 	ebitenutil.DrawLine(screen, float64(legendX), float64(legendY+legendSpacing*2),
 		float64(legendX+30), float64(legendY+legendSpacing*2), fitLineColor)
 	if ttfFont != nil {
-		text.Draw(screen, fmt.Sprintf("Fit Line (y=%.8fx+%.8f)", w, b), ttfFont, legendX+40, legendY+legendSpacing*2+5, labelColor)
+		text.Draw(screen, fmt.Sprintf("Fit Curve (y=%.3fx²+%.3fx+%.3f)", a, b, c), ttfFont, legendX+40, legendY+legendSpacing*2+5, labelColor)
 	} else {
-		ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Fit Line (y=%.8fx+%.8f)", w, b), legendX+40, legendY+legendSpacing*2-5)
+		ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Fit Curve (y=%.3fx²+%.3fx+%.3f)", a, b, c), legendX+40, legendY+legendSpacing*2-5)
 	}
 }
 
+// 绘制统计信息
 func drawStats(screen *ebiten.Image) {
 	statsX := 20
 	statsY := screenHeight - 140
 	statsSpacing := 20
 
-	loss := Mse(b, w, data)
+	loss := Mse(a, b, c, data)
 	progress := float64(step) / float64(numIterations) * 100
 
 	if ttfFont != nil {
 		text.Draw(screen, "Training Progress:", ttfFont, statsX, statsY, labelColor)
 		text.Draw(screen, fmt.Sprintf("Iteration: %d/%d (%.1f%%)", step, numIterations, progress), ttfFont, statsX, statsY+statsSpacing, labelColor)
 		text.Draw(screen, fmt.Sprintf("Loss: %.6f", loss), ttfFont, statsX, statsY+statsSpacing*2, labelColor)
-		text.Draw(screen, fmt.Sprintf("Parameters: w=%.8f, b=%.8f", w, b), ttfFont, statsX, statsY+statsSpacing*3, labelColor)
+		text.Draw(screen, fmt.Sprintf("Parameters: a=%.6f, b=%.6f, c=%.6f", a, b, c), ttfFont, statsX, statsY+statsSpacing*3, labelColor)
 	} else {
 		ebitenutil.DebugPrintAt(screen, "Training Progress:", statsX, statsY)
 		ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Iteration: %d/%d (%.1f%%)", step, numIterations, progress), statsX, statsY+statsSpacing)
 		ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Loss: %.6f", loss), statsX, statsY+statsSpacing*2)
-		ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Parameters: w=%.8f, b=%.8f", w, b), statsX, statsY+statsSpacing*3)
+		ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Parameters: a=%.6f, b=%.6f, c=%.6f", a, b, c), statsX, statsY+statsSpacing*3)
 	}
 }
 
+// 绘制进度条
 func drawProgressBar(screen *ebiten.Image) {
 	barX := 20
 	barY := screenHeight - 30
@@ -308,6 +340,7 @@ func drawProgressBar(screen *ebiten.Image) {
 	}
 }
 
+// 加载字体
 func loadFont() {
 	// 尝试加载系统字体
 	// 注意：实际使用时可能需要提供具体的字体文件路径
@@ -334,20 +367,20 @@ func loadFont() {
 }
 
 func main() {
-	// 设置最大帧率，避免CPU占用过高
-	ebiten.SetMaxTPS(30) // 每秒最多30帧，足够流畅显示
+	// 设置最大帧率
+	ebiten.SetMaxTPS(30)
 
 	// 尝试加载字体（可选）
 	loadFont()
 
 	// 初始化数据、参数
 	initData(dataSize)
-	w, b = 0.0, 0.0
+	a, b, c = 0.0, 0.0, 0.0
 	lastUpdate = time.Now()
 
-	// 启动 Ebiten 可视化
+	// 启动可视化
 	ebiten.SetWindowSize(screenWidth, screenHeight)
-	ebiten.SetWindowTitle("Linear Regression Visualization")
+	ebiten.SetWindowTitle("二次函数拟合可视化")
 	if err := ebiten.RunGame(&Game{}); err != nil {
 		panic(err)
 	}

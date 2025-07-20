@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>逻辑回归可视化代码说明</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- 引入html2pdf.js库用于导出PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4F46E5',
+                        secondary: '#10B981',
+                        dark: '#1E293B',
+                        light: '#F8FAFC',
+                        accent: '#3B82F6',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .code-block {
+                @apply my-4 p-4 bg-gray-900 text-gray-100 rounded-lg overflow-x-auto text-sm font-mono;
+            }
+            .section-title {
+                @apply text-2xl font-bold text-dark mb-6 mt-10 border-b pb-2;
+            }
+            .card {
+                @apply bg-white p-6 rounded-lg shadow-sm mb-6;
+            }
+            .btn {
+                @apply px-4 py-2 rounded-md font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2;
+            }
+            .btn-primary {
+                @apply bg-primary text-white hover:bg-primary/90 focus:ring-primary;
+            }
+            .btn-secondary {
+                @apply bg-gray-200 text-gray-800 hover:bg-gray-300 focus:ring-gray-400;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+    <!-- 导航栏 -->
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-primary">逻辑回归可视化代码说明</h1>
+            <div class="flex space-x-3">
+                <button id="export-pdf" class="btn btn-primary">
+                    <i class="fa fa-file-pdf-o mr-1"></i> 导出PDF
+                </button>
+                <button id="export-markdown" class="btn btn-secondary">
+                    <i class="fa fa-file-text-o mr-1"></i> 导出Markdown
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主要内容 -->
+    <main id="content" class="container mx-auto px-4 py-8">
+        <!-- 项目概述 -->
+        <section id="overview" class="mb-12">
+            <h2 class="section-title">项目概述</h2>
+            <div class="card">
+                <p class="mb-4">这段Go语言代码实现了一个二元逻辑回归分类器的可视化程序，使用ebiten游戏引擎展示分类过程。主要功能包括：</p>
+                
+                <ul class="list-disc pl-6 space-y-2">
+                    <li>生成二维平面上的分类数据点，围绕一条真实直线分布</li>
+                    <li>使用梯度下降算法优化逻辑回归模型参数（a、b、c）</li>
+                    <li>实时可视化展示分类边界的拟合过程，包括样本点、真实边界和拟合边界</li>
+                    <li>显示训练进度、交叉熵损失值和模型参数的变化</li>
+                </ul>
+                
+                <div class="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
+                    <p class="text-blue-800"><i class="fa fa-lightbulb-o mr-2"></i>该项目非常适合理解逻辑回归和分类问题的工作原理，通过可视化可以直观地看到模型如何学习区分两个类别的决策边界。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 代码结构 -->
+        <section id="structure" class="mb-12">
+            <h2 class="section-title">代码结构</h2>
+            <div class="card">
+                <h3 class="text-xl font-semibold mb-3 text-primary">主要组成部分</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div class="p-4 border border-gray-200 rounded-lg">
+                        <h4 class="font-semibold mb-2">常量定义</h4>
+                        <p>屏幕尺寸、坐标轴范围、数据参数等配置</p>
+                    </div>
+                    <div class="p-4 border border-gray-200 rounded-lg">
+                        <h4 class="font-semibold mb-2">全局变量</h4>
+                        <p>数据存储、模型参数、颜色定义等全局状态</p>
+                    </div>
+                    <div class="p-4 border border-gray-200 rounded-lg">
+                        <h4 class="font-semibold mb-2">数据生成函数</h4>
+                        <p>生成符合线性边界的二元分类数据</p>
+                    </div>
+                    <div class="p-4 border border-gray-200 rounded-lg">
+                        <h4 class="font-semibold mb-2">模型训练函数</h4>
+                        <p>计算逻辑斯蒂函数、交叉熵损失、梯度下降更新参数</p>
+                    </div>
+                    <div class="p-4 border border-gray-200 rounded-lg">
+                        <h4 class="font-semibold mb-2">可视化函数</h4>
+                        <p>绘制网格、坐标轴、数据点、分类边界等</p>
+                    </div>
+                    <div class="p-4 border border-gray-200 rounded-lg">
+                        <h4 class="font-semibold mb-2">游戏循环</h4>
+                        <p>Ebiten框架的Update和Draw方法，控制训练和渲染</p>
+                    </div>
+                </div>
+                
+                <h3 class="text-xl font-semibold mb-3 text-primary">程序执行流程</h3>
+                <ol class="list-decimal pl-6 space-y-2">
+                    <li>初始化：设置随机种子、生成分类数据点、初始化模型参数</li>
+                    <li>游戏循环开始：
+                        <ul class="list-disc pl-6 mt-1">
+                            <li>Update()：执行梯度下降步骤，更新模型参数</li>
+                            <li>Draw()：绘制当前状态的所有元素，包括数据点和边界</li>
+                        </ul>
+                    </li>
+                    <li>训练完成：模型参数收敛，拟合边界接近真实边界</li>
+                </ol>
+            </div>
+        </section>
+
+        <!-- 核心算法 -->
+        <section id="core" class="mb-12">
+            <h2 class="section-title">核心算法</h2>
+            <div class="card">
+                <h3 class="text-xl font-semibold mb-3 text-primary">逻辑回归模型</h3>
+                <p class="mb-3">逻辑回归模型通过逻辑斯蒂函数（sigmoid）将线性组合映射到[0,1]区间的概率值：</p>
+                <div class="p-3 bg-gray-100 rounded-lg text-center mb-4">
+                    <strong>p = 1 / (1 + e^-(a + b·x + c·y))</strong>
+                </div>
+                <p>其中：</p>
+                <ul class="list-disc pl-6 mb-4">
+                    <li>p 是属于类别1的概率</li>
+                    <li>x, y 是输入特征（二维坐标）</li>
+                    <li>a 是偏置参数</li>
+                    <li>b, c 是特征的权重参数</li>
+                </ul>
+                <p>代码实现：</p>
+                <div class="code-block">
+<pre>func logistic(a, b, c, x, y float64) float64 {
+    g := a + b*x + c*y
+    return 1.0 / (1.0 + math.Exp(-g))
+}</pre>
+                </div>
+
+                <h3 class="text-xl font-semibold mb-3 mt-6 text-primary">交叉熵损失函数</h3>
+                <p class="mb-3">使用交叉熵损失函数衡量分类效果：</p>
+                <div class="p-3 bg-gray-100 rounded-lg text-center mb-4">
+                    <strong>L = -(1/n)·Σ(y<sub>i</sub>·log(p<sub>i</sub>) + (1-y<sub>i</sub>)·log(1-p<sub>i</sub>))</strong>
+                </div>
+                <p>代码实现：</p>
+                <div class="code-block">
+<pre>func crossEntropyLoss(yTrue []int, xData, yData []float64, a, b, c float64) float64 {
+    m := len(yTrue)
+    sumLoss := 0.0
+    for i := range yTrue {
+        p := logistic(a, b, c, xData[i], yData[i])
+        if yTrue[i] == 1 {
+            sumLoss -= math.Log(p)
+        } else {
+            sumLoss -= math.Log(1 - p)
+        }
+    }
+    return sumLoss / float64(m)
+}</pre>
+                </div>
+
+                <h3 class="text-xl font-semibold mb-3 mt-6 text-primary">梯度下降</h3>
+                <p class="mb-3">通过计算损失函数对各参数的梯度，沿梯度反方向更新参数：</p>
+                <div class="p-3 bg-gray-100 rounded-lg text-center mb-4">
+                    <strong>a = a - lr·∂L/∂a</strong><br>
+                    <strong>b = b - lr·∂L/∂b</strong><br>
+                    <strong>c = c - lr·∂L/∂c</strong>
+                </div>
+                <p>梯度计算与参数更新的代码实现：</p>
+                <div class="code-block">
+<pre>func (g *Game) Update() error {
+    if currentIter < totalIterations {
+        gradA := gradientA(labels, xData, yData, a, b, c)
+        gradB := gradientB(labels, xData, yData, a, b, c)
+        gradC := gradientC(labels, xData, yData, a, b, c)
+
+        a -= learningRate * gradA
+        b -= learningRate * gradB
+        c -= learningRate * gradC
+
+        loss = crossEntropyLoss(labels, xData, yData, a, b, c)
+        currentIter++
+    }
+    return nil
+}</pre>
+                </div>
+
+                <div class="mt-6 p-4 bg-green-50 rounded-lg border border-green-100">
+                    <h4 class="font-semibold text-green-800 mb-2"><i class="fa fa-check-circle mr-2"></i>分类边界</h4>
+                    <p class="text-green-800">当p=0.5时，得到分类边界：a + b·x + c·y = 0，即y = (-a - b·x)/c。随着训练进行，模型学习到的边界会逐渐接近真实边界。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 可视化部分 -->
+        <section id="visualization" class="mb-12">
+            <h2 class="section-title">可视化部分</h2>
+            <div class="card">
+                <h3 class="text-xl font-semibold mb-3 text-primary">绘制元素</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <h4 class="font-semibold mb-2">坐标系与网格</h4>
+                        <p class="mb-2">通过drawGrid()和drawAxis()函数实现：</p>
+                        <ul class="list-disc pl-6">
+                            <li>绘制x轴和y轴，带刻度标识</li>
+                            <li>添加灰色网格线，便于观察数据位置</li>
+                            <li>标注坐标轴刻度值</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold mb-2">数据点与边界</h4>
+                        <p class="mb-2">通过drawDataPoints()和drawDecisionBoundary()函数实现：</p>
+                        <ul class="list-disc pl-6">
+                            <li>用蓝色和红色绘制两类数据点</li>
+                            <li>用绿色绘制真实分类边界</li>
+                            <li>用橙色绘制当前拟合的分类边界</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <h3 class="text-xl font-semibold mb-3 text-primary">状态信息展示</h3>
+                <p class="mb-3">通过多个辅助函数展示训练状态：</p>
+                
+                <div class="code-block mb-4">
+<pre>// 绘制方程文本
+func drawEquations(screen *ebiten.Image) { ... }
+
+// 绘制训练信息
+func drawTrainingInfo(screen *ebiten.Image) { ... }</pre>
+                </div>
+                
+                <p>展示的关键信息包括：</p>
+                <ul class="list-disc pl-6">
+                    <li>当前迭代次数和总迭代次数</li>
+                    <li>当前交叉熵损失值</li>
+                    <li>当前模型参数a、b、c</li>
+                    <li>真实边界和拟合边界的方程</li>
+                </ul>
+                
+                <h3 class="text-xl font-semibold mb-3 mt-6 text-primary">坐标转换</h3>
+                <p class="mb-3">数学坐标到屏幕坐标的映射：</p>
+                <div class="code-block">
+<pre>// 坐标转换：数学坐标转屏幕坐标
+func mathToScreen(x, y float64) (float64, float64) {
+    screenX := (x - xMinPlot) / (xMaxPlot - xMinPlot) * float64(screenWidth)
+    screenY := (1 - (y - yMinPlot)/(yMaxPlot - yMinPlot)) * float64(screenHeight)
+    return screenX, screenY
+}</pre>
+                </div>
+                <p>该函数确保数学坐标系中的点能正确显示在屏幕上，考虑了不同的坐标方向和范围。</p>
+            </div>
+        </section>
+
+        <!-- 参数说明 -->
+        <section id="parameters" class="mb-12">
+            <h2 class="section-title">参数说明</h2>
+            <div class="card">
+                <h3 class="text-xl font-semibold mb-3 text-primary">关键参数</h3>
+                
+                <div class="overflow-x-auto">
+                    <table class="min-w-full border-collapse">
+                        <thead>
+                            <tr class="bg-gray-100">
+                                <th class="border p-3 text-left">参数</th>
+                                <th class="border p-3 text-left">含义</th>
+                                <th class="border p-3 text-left">默认值</th>
+                                <th class="border p-3 text-left">调整建议</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="border p-3 font-medium">numPoints</td>
+                                <td class="border p-3">数据点数量</td>
+                                <td class="border p-3">2000</td>
+                                <td class="border p-3">数据越多，模型越稳定，但计算量越大</td>
+                            </tr>
+                            <tr class="bg-gray-50">
+                                <td class="border p-3 font-medium">learningRate</td>
+                                <td class="border p-3">学习率</td>
+                                <td class="border p-3">0.006</td>
+                                <td class="border p-3">过大会导致不收敛，过小会导致收敛慢</td>
+                            </tr>
+                            <tr>
+                                <td class="border p-3 font-medium">totalIterations</td>
+                                <td class="border p-3">总迭代次数</td>
+                                <td class="border p-3">200000</td>
+                                <td class="border p-3">足够大以确保收敛，可根据损失变化调整</td>
+                            </tr>
+                            <tr class="bg-gray-50">
+                                <td class="border p-3 font-medium">noiseMax</td>
+                                <td class="border p-3">噪声最大值</td>
+                                <td class="border p-3">1.5</td>
+                                <td class="border p-3">值越大，数据越分散，分类越困难</td>
+                            </tr>
+                            <tr>
+                                <td class="border p-3 font-medium">trueSlope</td>
+                                <td class="border p-3">真实边界斜率</td>
+                                <td class="border p-3">1.342</td>
+                                <td class="border p-3">定义真实分类边界的斜率</td>
+                            </tr>
+                            <tr class="bg-gray-50">
+                                <td class="border p-3 font-medium">trueIntercept</td>
+                                <td class="border p-3">真实边界截距</td>
+                                <td class="border p-3">2.45</td>
+                                <td class="border p-3">定义真实分类边界的截距</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="bg-dark text-white py-8">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-4 md:mb-0">
+                    <p class="text-sm">逻辑回归可视化代码说明 &copy; 2025</p>
+                </div>
+                <div class="flex space-x-4">
+                    <a href="#" class="text-gray-300 hover:text-white transition">
+                        <i class="fa fa-github"></i>
+                    </a>
+                    <a href="#" class="text-gray-300 hover:text-white transition">
+                        <i class="fa fa-twitter"></i>
+                    </a>
+                    <a href="#" class="text-gray-300 hover:text-white transition">
+                        <i class="fa fa-linkedin"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 导出功能的脚本 -->
+    <script>
+        // 导出PDF功能
+        document.getElementById('export-pdf').addEventListener('click', function() {
+            const content = document.getElementById('content');
+            const opt = {
+                margin: 10,
+                filename: '逻辑回归可视化代码说明.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+            
+            // 显示导出中提示
+            this.innerHTML = '<i class="fa fa-spinner fa-spin mr-1"></i> 导出中...';
+            this.disabled = true;
+            
+            // 生成PDF
+            html2pdf().from(content).set(opt).save().then(() => {
+                // 恢复按钮状态
+                this.innerHTML = '<i class="fa fa-file-pdf-o mr-1"></i> 导出PDF';
+                this.disabled = false;
+            });
+        });
+
+        // 导出Markdown功能
+        document.getElementById('export-markdown').addEventListener('click', function() {
+            // 显示导出中提示
+            this.innerHTML = '<i class="fa fa-spinner fa-spin mr-1"></i> 导出中...';
+            this.disabled = true;
+            
+            // 生成Markdown内容
+            const markdownContent = generateMarkdown();
+            
+            // 创建下载链接
+            const blob = new Blob([markdownContent], { type: 'text/markdown' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = '逻辑回归可视化代码说明.md';
+            
+            // 触发下载
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            // 恢复按钮状态
+            this.innerHTML = '<i class="fa fa-file-text-o mr-1"></i> 导出Markdown';
+            this.disabled = false;
+        });
+
+        // 生成Markdown内容
+        function generateMarkdown() {
+            let markdown = '# 逻辑回归可视化代码说明\n\n';
+            
+            // 遍历每个章节
+            const sections = document.querySelectorAll('main > section');
+            sections.forEach(section => {
+                const title = section.querySelector('.section-title').textContent;
+                const level = title.startsWith('项目') ? 1 : 2;
+                const heading = '#'.repeat(level) + ' ' + title + '\n\n';
+                
+                let content = '';
+                const children = Array.from(section.children);
+                
+                children.forEach(child => {
+                    if (child.classList.contains('card')) {
+                        // 处理卡片内容
+                        content += processCard(child) + '\n\n';
+                    }
+                });
+                
+                markdown += heading + content;
+            });
+            
+            return markdown;
+        }
+
+        // 处理卡片内容
+        function processCard(card) {
+            let markdown = '';
+            
+            // 处理标题
+            const title = card.querySelector('h3');
+            if (title) {
+                markdown += '### ' + title.textContent + '\n\n';
+            }
+            
+            // 处理段落
+            const paragraphs = card.querySelectorAll('p');
+            paragraphs.forEach(p => {
+                markdown += p.textContent + '\n\n';
+            });
+            
+            // 处理列表
+            const lists = card.querySelectorAll('ul, ol');
+            lists.forEach(list => {
+                const isOrdered = list.tagName === 'OL';
+                const items = list.querySelectorAll('li');
+                
+                items.forEach((item, index) => {
+                    const prefix = isOrdered ? `${index + 1}. ` : '- ';
+                    markdown += prefix + item.textContent + '\n';
+                });
+                
+                markdown += '\n';
+            });
+            
+            // 处理代码块
+            const codeBlocks = card.querySelectorAll('.code-block');
+            codeBlocks.forEach(codeBlock => {
+                const code = codeBlock.textContent.trim();
+                markdown += '```go\n' + code + '\n```\n\n';
+            });
+            
+            // 处理表格
+            const tables = card.querySelectorAll('table');
+            tables.forEach(table => {
+                const rows = table.querySelectorAll('tr');
+                const headers = rows[0].querySelectorAll('th');
+                const dataRows = Array.from(rows).slice(1);
+                
+                // 生成表头
+                let tableMarkdown = '|';
+                headers.forEach(header => {
+                    tableMarkdown += ' ' + header.textContent.trim() + ' |';
+                });
+                tableMarkdown += '\n|';
+                
+                // 生成分隔线
+                headers.forEach(() => {
+                    tableMarkdown += ' --- |';
+                });
+                tableMarkdown += '\n';
+                
+                // 生成数据行
+                dataRows.forEach(row => {
+                    const cells = row.querySelectorAll('td');
+                    tableMarkdown += '|';
+                    cells.forEach(cell => {
+                        tableMarkdown += ' ' + cell.textContent.trim() + ' |';
+                    });
+                    tableMarkdown += '\n';
+                });
+                
+                markdown += tableMarkdown + '\n';
+            });
+            
+            // 处理特殊提示框
+            const alerts = card.querySelectorAll('.bg-blue-50, .bg-green-50');
+            alerts.forEach(alert => {
+                const icon = alert.querySelector('i').className.includes('lightbulb') ? '💡' : '✅';
+                const text = alert.querySelector('p').textContent.replace(/<i[^>]*><\/i>/, '').trim();
+                
+                markdown += `> ${icon} ${text}\n\n`;
+            });
+            
+            return markdown.trim();
+        }
+    </script>
+</body>
+</html>

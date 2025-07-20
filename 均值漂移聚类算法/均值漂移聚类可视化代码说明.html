@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>均值漂移聚类可视化代码说明</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- 引入html2pdf.js库用于导出PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4F46E5',
+                        secondary: '#10B981',
+                        dark: '#1E293B',
+                        light: '#F8FAFC',
+                        accent: '#3B82F6',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .code-block {
+                @apply my-4 p-4 bg-gray-900 text-gray-100 rounded-lg overflow-x-auto text-sm font-mono;
+            }
+            .section-title {
+                @apply text-2xl font-bold text-dark mb-6 mt-10 border-b pb-2;
+            }
+            .card {
+                @apply bg-white p-6 rounded-lg shadow-sm mb-6;
+            }
+            .btn {
+                @apply px-4 py-2 rounded-md font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2;
+            }
+            .btn-primary {
+                @apply bg-primary text-white hover:bg-primary/90 focus:ring-primary;
+            }
+            .btn-secondary {
+                @apply bg-gray-200 text-gray-800 hover:bg-gray-300 focus:ring-gray-400;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+    <!-- 导航栏 -->
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-primary">均值漂移聚类可视化代码说明</h1>
+            <div class="flex space-x-3">
+                <button id="export-pdf" class="btn btn-primary">
+                    <i class="fa fa-file-pdf-o mr-1"></i> 导出PDF
+                </button>
+                <button id="export-markdown" class="btn btn-secondary">
+                    <i class="fa fa-file-text-o mr-1"></i> 导出Markdown
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主要内容 -->
+    <main id="content" class="container mx-auto px-4 py-8">
+        <!-- 项目概述 -->
+        <section id="overview" class="mb-12">
+            <h2 class="section-title">项目概述</h2>
+            <div class="card">
+                <p class="mb-4">这段Go语言代码实现了均值漂移聚类算法的可视化程序，使用ebiten游戏引擎展示聚类过程。主要功能包括：</p>
+                
+                <ul class="list-disc pl-6 space-y-2">
+                    <li>生成具有自然聚类特性的二维数据点</li>
+                    <li>使用均值漂移算法自动发现数据中的聚类中心</li>
+                    <li>可视化展示每个点向聚类中心的漂移过程</li>
+                    <li>使用动画效果平滑过渡漂移轨迹</li>
+                    <li>自动确定聚类数量，无需预先指定</li>
+                    <li>显示当前迭代次数和收敛状态</li>
+                </ul>
+                
+                <div class="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
+                    <p class="text-blue-800"><i class="fa fa-lightbulb-o mr-2"></i>该项目非常适合理解均值漂移聚类算法的工作原理，通过可视化可以直观地看到算法如何自动发现数据中的密度中心，并将数据点分配到不同的聚类中。与K-means不同，均值漂移不需要预先指定聚类数量，而是根据数据密度自动确定。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 代码结构 -->
+        <section id="structure" class="mb-12">
+            <h2 class="section-title">代码结构</h2>
+            <div class="card">
+                <h3 class="text-xl font-semibold mb-3 text-primary">主要组成部分</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div class="p-4 border border-gray-200 rounded-lg">
+                        <h4 class="font-semibold mb-2">数据结构</h4>
+                        <p>定义了Point结构表示数据点，包含X和Y坐标</p>
+                    </div>
+                    <div class="p-4 border border-gray-200 rounded-lg">
+                        <h4 class="font-semibold mb-2">数据生成</h4>
+                        <p>生成具有自然聚类特性的数据点，便于展示均值漂移效果</p>
+                    </div>
+                    <div class="p-4 border border-gray-200 rounded-lg">
+                        <h4 class="font-semibold mb-2">均值漂移核心</h4>
+                        <p>实现了均值漂移算法的核心逻辑：计算漂移方向和更新位置</p>
+                    </div>
+                    <div class="p-4 border border-gray-200 rounded-lg">
+                        <h4 class="font-semibold mb-2">动画控制</h4>
+                        <p>控制聚类漂移的动画过程和状态更新</p>
+                    </div>
+                    <div class="p-4 border border-gray-200 rounded-lg">
+                        <h4 class="font-semibold mb-2">可视化</h4>
+                        <p>将原始数据点、漂移轨迹和最终聚类结果绘制到屏幕上</p>
+                    </div>
+                    <div class="p-4 border border-gray-200 rounded-lg">
+                        <h4 class="font-semibold mb-2">游戏循环</h4>
+                        <p>Ebiten框架的Update和Draw方法，控制整体流程</p>
+                    </div>
+                </div>
+                
+                <h3 class="text-xl font-semibold mb-3 text-primary">程序执行流程</h3>
+                <ol class="list-decimal pl-6 space-y-2">
+                    <li>初始化：生成带聚类特性的数据点，创建均值漂移实例</li>
+                    <li>游戏循环开始：
+                        <ul class="list-disc pl-6 mt-1">
+                            <li>Update()：更新动画进度，执行均值漂移步骤</li>
+                            <li>Draw()：绘制当前状态的所有元素，包括数据点、漂移轨迹和当前模式点</li>
+                        </ul>
+                    </li>
+                    <li>收敛判断：当所有点的移动距离小于阈值时，算法收敛</li>
+                    <li>聚类标签分配：根据最终的模式点位置，将相似的模式点合并为同一聚类</li>
+                </ol>
+            </div>
+        </section>
+
+        <!-- 核心算法 -->
+        <section id="core" class="mb-12">
+            <h2 class="section-title">核心算法</h2>
+            <div class="card">
+                <h3 class="text-xl font-semibold mb-3 text-primary">均值漂移算法</h3>
+                <p class="mb-3">均值漂移是一种基于密度估计的非参数聚类方法，它的核心思想是：</p>
+                <div class="p-3 bg-gray-100 rounded-lg text-center mb-4">
+                    <strong>每个数据点都会向数据密度更高的区域"漂移"，最终收敛到密度峰值（模式点）</strong>
+                </div>
+                
+                <h3 class="text-xl font-semibold mb-3 text-primary">算法原理</h3>
+                <p class="mb-3">给定一个点x，均值漂移迭代更新公式为：</p>
+                <div class="p-3 bg-gray-100 rounded-lg text-center mb-4">
+                    <strong>x<sub>i+1</sub> = Σ<sub>j=1</sub><sup>n</sup> K(x<sub>i</sub>-x<sub>j</sub>)·x<sub>j</sub> / Σ<sub>j=1</sub><sup>n</sup> K(x<sub>i</sub>-x<sub>j</sub>)</strong>
+                </div>
+                <p>其中：</p>
+                <ul class="list-disc pl-6 mb-4">
+                    <li>K是核函数（通常使用高斯核）</li>
+                    <li>n是数据点数量</li>
+                    <li>x<sub>j</sub>是第j个数据点</li>
+                </ul>
+                
+                <h3 class="text-xl font-semibold mb-3 text-primary">代码实现</h3>
+                <p class="mb-3">核心算法在Step()方法中实现：</p>
+                <div class="code-block">
+<pre>func (ms *MeanShift) Step() bool {
+    converged := true
+    bandwidthSq := ms.bandwidth * ms.bandwidth // 带宽平方（优化计算）
+    
+    // 对每个点执行一次漂移计算
+    for i := range ms.modes {
+        currentMode := ms.modes[i]
+        sumX, sumY := 0.0, 0.0
+        totalWeight := 0.0
+        
+        // 计算带宽范围内的加权平均
+        for _, p := range ms.points {
+            distSq := (p.X-currentMode.X)*(p.X-currentMode.X) + (p.Y-currentMode.Y)*(p.Y-currentMode.Y)
+            if distSq <= bandwidthSq {
+                // 高斯核函数权重
+                weight := math.Exp(-distSq / (2 * bandwidthSq))
+                sumX += p.X * weight
+                sumY += p.Y * weight
+                totalWeight += weight
+            }
+        }
+        
+        // 计算新的模式点
+        if totalWeight > 0 {
+            newMode := Point{
+                X: sumX / totalWeight,
+                Y: sumY / totalWeight,
+            }
+            
+            // 检查是否收敛（移动距离小于阈值）
+            if distance(newMode, currentMode) > 0.01 {
+                ms.modes[i] = newMode
+                converged = false
+            }
+        }
+    }
+    
+    ms.iterations++
+    return converged
+}</pre>
+                </div>
+                
+                <h3 class="text-xl font-semibold mb-3 text-primary">高斯核函数</h3>
+                <p class="mb-3">在代码中使用的高斯核函数：</p>
+                <div class="code-block">
+<pre>weight := math.Exp(-distSq / (2 * bandwidthSq))</pre>
+                </div>
+                <p>高斯核函数的特点：</p>
+                <ul class="list-disc pl-6 mb-4">
+                    <li>距离越近的点权重越大</li>
+                    <li>带宽参数控制了影响范围</li>
+                    <li>随着距离增加，权重呈指数衰减</li>
+                </ul>
+                
+                <div class="mt-6 p-4 bg-green-50 rounded-lg border border-green-100">
+                    <h4 class="font-semibold text-green-800 mb-2"><i class="fa fa-check-circle mr-2"></i>算法特性</h4>
+                    <p class="text-green-800">均值漂移算法的主要优点：
+                    <ul class="list-disc pl-6 mt-2">
+                        <li>不需要预先指定聚类数量</li>
+                        <li>能够发现任意形状的聚类</li>
+                        <li>对噪声和离群点具有鲁棒性</li>
+                        <li>算法自动确定聚类中心的位置</li>
+                    </ul>
+                    主要缺点：
+                    <ul class="list-disc pl-6 mt-2">
+                        <li>计算复杂度较高（O(n²)）</li>
+                        <li>带宽参数需要手动调整</li>
+                        <li>可能会收敛到局部密度峰值</li>
+                    </ul>
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 可视化部分 -->
+        <section id="visualization" class="mb-12">
+            <h2 class="section-title">可视化部分</h2>
+            <div class="card">
+                <h3 class="text-xl font-semibold mb-3 text-primary">绘制元素</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <h4 class="font-semibold mb-2">原始数据点</h4>
+                        <p class="mb-2">使用浅灰色小点表示：</p>
+                        <ul class="list-disc pl-6">
+                            <li>每个点大小为2x2像素</li>
+                            <li>作为背景显示，不随算法迭代变化</li>
+                            <li>提供参考框架，帮助理解漂移过程</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold mb-2">漂移轨迹</h4>
+                        <p class="mb-2">使用浅灰色线条连接原始点和当前模式点：</p>
+                        <ul class="list-disc pl-6">
+                            <li>每条线从原始点出发，指向当前漂移位置</li>
+                            <li>线的颜色为浅灰色，不干扰主要视觉元素</li>
+                            <li>帮助理解每个点的漂移路径</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold mb-2">当前模式点</h4>
+                        <p class="mb-2">使用彩色方块表示每个点的当前漂移位置：</p>
+                        <ul class="list-disc pl-6">
+                            <li>算法收敛前使用统一蓝色</li>
+                            <li>算法收敛后根据聚类结果使用不同颜色</li>
+                            <li>每个点大小为4x4像素，便于观察</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold mb-2">状态信息</h4>
+                        <p class="mb-2">显示当前算法状态：</p>
+                        <ul class="list-disc pl-6">
+                            <li>当前迭代次数</li>
+                            <li>带宽参数值</li>
+                            <li>是否收敛的状态提示</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <h3 class="text-xl font-semibold mb-3 text-primary">动画控制</h3>
+                <p class="mb-3">动画效果通过Update()和UpdateAnimation()方法控制：</p>
+                <div class="code-block">
+<pre>func (g *Game) Update() error {
+    if g.ms.converged {
+        return nil
+    }
+    
+    // 动画进度更新
+    g.animProg += g.animSpeed
+    if g.animProg >= 1.0 {
+        // 动画结束，执行下一步均值漂移
+        g.animProg = 0
+        g.ms.converged = g.ms.Step()
+        g.ms.currentStep++
+    }
+    
+    // 更新当前动画帧的显示状态
+    g.ms.UpdateAnimation(g.animProg)
+    return nil
+}</pre>
+                </div>
+                
+                <p class="mb-3">关键动画逻辑：</p>
+                <ul class="list-disc pl-6 mb-4">
+                    <li>使用animProg变量跟踪动画进度（0-1）</li>
+                    <li>每次更新增加animSpeed（0.03）</li>
+                    <li>动画完成后执行均值漂移迭代步骤</li>
+                    <li>在UpdateAnimation()中使用线性插值计算当前显示位置</li>
+                </ul>
+                
+                <h3 class="text-xl font-semibold mb-3 text-primary">坐标映射</h3>
+                <p class="mb-3">将数学坐标（0-100范围）映射到屏幕坐标：</p>
+                <div class="code-block">
+<pre>// 绘制原始数据点（灰色小点点）
+for _, p := range g.ms.points {
+    x := int(p.X * float64(g.width) / 100)
+    y := int(p.Y * float64(g.height) / 100)
+    for dx := -1; dx <= 1; dx++ {
+        for dy := -1; dy <= 1; dy++ {
+            screen.Set(x+dx, y+dy, color.Gray{Y: 200})
+        }
+    }
+}</pre>
+                </div>
+                <p>这种映射确保生成的随机点（0-100范围）能够正确显示在窗口内。</p>
+            </div>
+        </section>
+
+        <!-- 参数说明 -->
+        <section id="parameters" class="mb-12">
+            <h2 class="section-title">参数说明</h2>
+            <div class="card">
+                <h3 class="text-xl font-semibold mb-3 text-primary">关键参数</h3>
+                
+                <div class="overflow-x-auto">
+                    <table class="min-w-full border-collapse">
+                        <thead>
+                            <tr class="bg-gray-100">
+                                <th class="border p-3 text-left">参数</th>
+                                <th class="border p-3 text-left">含义</th>
+                                <th class="border p-3 text-left">默认值</th>
+                                <th class="border p-3 text-left">调整建议</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="border p-3 font-medium">bandwidth</td>
+                                <td class="border p-3">高斯核函数带宽</td>
+                                <td class="border p-3">5.0</td>
+                                <td class="border p-3">控制聚类粒度，较大值产生更少的聚类，较小值产生更多的聚类</td>
+                            </tr>
+                            <tr class="bg-gray-50">
+                                <td class="border p-3 font-medium">width, height</td>
+                                <td class="border p-3">窗口尺寸</td>
+                                <td class="border p-3">800x600</td>
+                                <td class="border p-3">根据需要调整窗口大小</td>
+                            </tr>
+                            <tr>
+                                <td class="border p-3 font-medium">animSpeed</td>
+                                <td class="border p-3">动画速度</td>
+                                <td class="border p-3">0.03</td>
+                                <td class="border p-3">值越大动画越快，可调整为0.01-0.05之间</td>
+                            </tr>
+                            <tr class="bg-gray-50">
+                                <td class="border p-3 font-medium">total</td>
+                                <td class="border p-3">数据点总数</td>
+                                <td class="border p-3">600</td>
+                                <td class="border p-3">数据越多，聚类效果越明显，但计算量也越大</td>
+                            </tr>
+                            <tr>
+                                <td class="border p-3 font-medium">clusters</td>
+                                <td class="border p-3">生成的自然聚类数量</td>
+                                <td class="border p-3">5</td>
+                                <td class="border p-3">控制初始数据的聚类特性，用于测试算法效果</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <h3 class="text-xl font-semibold mb-3 mt-6 text-primary">初始化参数</h3>
+                <p class="mb-3">在main()函数中可以调整的参数：</p>
+                <div class="code-block">
+<pre>func main() {
+    // 生成600个带聚类特性的点（5个自然聚类）
+    points := generateClusteredPoints(600, 5)
+    
+    // 初始化均值漂移（带宽设为5.0，控制聚类粒度）
+    game := NewGame(points, 5)
+    ebiten.SetWindowSize(game.width, game.height)
+    ebiten.SetWindowTitle("均值漂移聚类动画")
+
+    // 运行动画
+    if err := ebiten.RunGame(game); err != nil {
+        panic(err)
+    }
+}</pre>
+                </div>
+                <p>通过修改这些参数，可以观察不同条件下均值漂移算法的表现。特别注意，bandwidth参数对聚类结果有重要影响：</p>
+                <ul class="list-disc pl-6 mt-2">
+                    <li>较大的bandwidth会导致更少、更大的聚类</li>
+                    <li>较小的bandwidth会导致更多、更小的聚类</li>
+                    <li>合适的bandwidth值取决于数据分布的特性</li>
+                </ul>
+            </div>
+        </section>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="bg-dark text-white py-8">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-4 md:mb-0">
+                    <p class="text-sm">均值漂移聚类可视化代码说明 &copy; 2025</p>
+                </div>
+                <div class="flex space-x-4">
+                    <a href="#" class="text-gray-300 hover:text-white transition">
+                        <i class="fa fa-github"></i>
+                    </a>
+                    <a href="#" class="text-gray-300 hover:text-white transition">
+                        <i class="fa fa-twitter"></i>
+                    </a>
+                    <a href="#" class="text-gray-300 hover:text-white transition">
+                        <i class="fa fa-linkedin"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 导出功能的脚本 -->
+    <script>
+        // 导出PDF功能
+        document.getElementById('export-pdf').addEventListener('click', function() {
+            const content = document.getElementById('content');
+            const opt = {
+                margin: 10,
+                filename: '均值漂移聚类可视化代码说明.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+            
+            // 显示导出中提示
+            this.innerHTML = '<i class="fa fa-spinner fa-spin mr-1"></i> 导出中...';
+            this.disabled = true;
+            
+            // 生成PDF
+            html2pdf().from(content).set(opt).save().then(() => {
+                // 恢复按钮状态
+                this.innerHTML = '<i class="fa fa-file-pdf-o mr-1"></i> 导出PDF';
+                this.disabled = false;
+            });
+        });
+
+        // 导出Markdown功能
+        document.getElementById('export-markdown').addEventListener('click', function() {
+            // 显示导出中提示
+            this.innerHTML = '<i class="fa fa-spinner fa-spin mr-1"></i> 导出中...';
+            this.disabled = true;
+            
+            // 生成Markdown内容
+            const markdownContent = generateMarkdown();
+            
+            // 创建下载链接
+            const blob = new Blob([markdownContent], { type: 'text/markdown' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = '均值漂移聚类可视化代码说明.md';
+            
+            // 触发下载
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            // 恢复按钮状态
+            this.innerHTML = '<i class="fa fa-file-text-o mr-1"></i> 导出Markdown';
+            this.disabled = false;
+        });
+
+        // 生成Markdown内容
+        function generateMarkdown() {
+            let markdown = '# 均值漂移聚类可视化代码说明\n\n';
+            
+            // 遍历每个章节
+            const sections = document.querySelectorAll('main > section');
+            sections.forEach(section => {
+                const title = section.querySelector('.section-title').textContent;
+                const level = title.startsWith('项目') ? 1 : 2;
+                const heading = '#'.repeat(level) + ' ' + title + '\n\n';
+                
+                let content = '';
+                const children = Array.from(section.children);
+                
+                children.forEach(child => {
+                    if (child.classList.contains('card')) {
+                        // 处理卡片内容
+                        content += processCard(child) + '\n\n';
+                    }
+                });
+                
+                markdown += heading + content;
+            });
+            
+            return markdown;
+        }
+
+        // 处理卡片内容
+        function processCard(card) {
+            let markdown = '';
+            
+            // 处理标题
+            const title = card.querySelector('h3');
+            if (title) {
+                markdown += '### ' + title.textContent + '\n\n';
+            }
+            
+            // 处理段落
+            const paragraphs = card.querySelectorAll('p');
+            paragraphs.forEach(p => {
+                markdown += p.textContent + '\n\n';
+            });
+            
+            // 处理列表
+            const lists = card.querySelectorAll('ul, ol');
+            lists.forEach(list => {
+                const isOrdered = list.tagName === 'OL';
+                const items = list.querySelectorAll('li');
+                
+                items.forEach((item, index) => {
+                    const prefix = isOrdered ? `${index + 1}. ` : '- ';
+                    markdown += prefix + item.textContent + '\n';
+                });
+                
+                markdown += '\n';
+            });
+            
+            // 处理代码块
+            const codeBlocks = card.querySelectorAll('.code-block');
+            codeBlocks.forEach(codeBlock => {
+                const code = codeBlock.textContent.trim();
+                markdown += '```go\n' + code + '\n```\n\n';
+            });
+            
+            // 处理表格
+            const tables = card.querySelectorAll('table');
+            tables.forEach(table => {
+                const rows = table.querySelectorAll('tr');
+                const headers = rows[0].querySelectorAll('th');
+                const dataRows = Array.from(rows).slice(1);
+                
+                // 生成表头
+                let tableMarkdown = '|';
+                headers.forEach(header => {
+                    tableMarkdown += ' ' + header.textContent.trim() + ' |';
+                });
+                tableMarkdown += '\n|';
+                
+                // 生成分隔线
+                headers.forEach(() => {
+                    tableMarkdown += ' --- |';
+                });
+                tableMarkdown += '\n';
+                
+                // 生成数据行
+                dataRows.forEach(row => {
+                    const cells = row.querySelectorAll('td');
+                    tableMarkdown += '|';
+                    cells.forEach(cell => {
+                        tableMarkdown += ' ' + cell.textContent.trim() + ' |';
+                    });
+                    tableMarkdown += '\n';
+                });
+                
+                markdown += tableMarkdown + '\n';
+            });
+            
+            // 处理特殊提示框
+            const alerts = card.querySelectorAll('.bg-blue-50, .bg-green-50');
+            alerts.forEach(alert => {
+                const icon = alert.querySelector('i').className.includes('lightbulb') ? '💡' : '✅';
+                const text = alert.querySelector('p').textContent.replace(/<i[^>]*><\/i>/, '').trim();
+                
+                markdown += `> ${icon} ${text}\n\n`;
+            });
+            
+            return markdown.trim();
+        }
+    </script>
+</body>
+</html>

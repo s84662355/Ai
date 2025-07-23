@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>决策树构建 - 信息增益计算（详细版）</title>
+    <style>
+        body {
+            font-family: "Microsoft YaHei", sans-serif;
+            margin: 40px;
+            line-height: 1.8;
+            background: #f8f9fa;
+        }
+        h1, h2, h3 {
+            color: #2f80ed;
+            border-left: 5px solid #2f80ed;
+            padding-left: 10px;
+            margin-top: 40px;
+        }
+        .formula {
+            background: #fff;
+            border: 1px solid #eee;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 10px 0;
+            white-space: pre-line;
+            font-family: "Courier New", monospace;
+        }
+        .step {
+            background: #fff;
+            border: 1px solid #eee;
+            border-radius: 6px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: center;
+        }
+        th {
+            background: #f1f5f9;
+        }
+        .highlight {
+            color: #dc2626;
+            font-weight: bold;
+        }
+        canvas {
+            max-width: 800px;
+            margin: 20px 0;
+            border: 1px solid #eee;
+            border-radius: 6px;
+        }
+        .tree-node {
+            border: 2px solid #2f80ed;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            background: #e6f7ff;
+        }
+        .tree-branch {
+            margin-left: 30px;
+            padding-left: 20px;
+            border-left: 2px dashed #2f80ed;
+        }
+        .tree-node.leaf {
+            background: #f0fff4;
+            border-color: #52c41a;
+        }
+        .tree-node.decision {
+            background: #fff2e8;
+            border-color: #fa8c16;
+        }
+        .tree-line {
+            position: relative;
+            padding-left: 20px;
+            margin-left: 10px;
+        }
+        .tree-line::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 10px;
+            bottom: 10px;
+            width: 2px;
+            background: #2f80ed;
+        }
+        .tree-line::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 10px;
+            width: 10px;
+            height: 2px;
+            background: #2f80ed;
+        }
+    </style>
+    <!-- 引入 Chart.js 用于可视化信息增益 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <!-- 引入 MathJax 用于渲染数学公式 -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+
+<h1>决策树构建 - 信息增益计算（详细版）</h1>
+<p>基于以下数据集，逐层计算特征的信息增益，最终构建决策树：</p>
+
+<!-- 数据集展示 -->
+<table>
+    <thead>
+    <tr>
+        <th>序号</th>
+        <th>年龄</th>
+        <th>服务时间</th>
+        <th>月消费</th>
+        <th>投诉次数</th>
+        <th>非保险费</th>
+        <th>续签</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr><td>1</td><td>青年</td><td>短</td><td>低</td><td>0</td><td>基础</td><td>不续签</td></tr>
+    <tr><td>2</td><td>青年</td><td>中</td><td>中</td><td>1</td><td>基础</td><td>不续签</td></tr>
+    <tr><td>3</td><td>中年</td><td>长</td><td>高</td><td>0</td><td>高级</td><td>续签</td></tr>
+    <tr><td>4</td><td>老年</td><td>长</td><td>中</td><td>0</td><td>高级</td><td>续签</td></tr>
+    <tr><td>5</td><td>老年</td><td>长</td><td>低</td><td>≥2</td><td>基础</td><td>不续签</td></tr>
+    <tr><td>6</td><td>中年</td><td>中</td><td>高</td><td>1</td><td>高级</td><td>续签</td></tr>
+    <tr><td>7</td><td>青年</td><td>短</td><td>中</td><td>0</td><td>基础</td><td>不续签</td></tr>
+    <tr><td>8</td><td>中年</td><td>长</td><td>高</td><td>0</td><td>基础</td><td>续签</td></tr>
+    <tr><td>9</td><td>老年</td><td>中</td><td>中</td><td>1</td><td>高级</td><td>续签</td></tr>
+    <tr><td>10</td><td>青年</td><td>长</td><td>高</td><td>≥2</td><td>高级</td><td>不续签</td></tr>
+    <tr><td>11</td><td>中年</td><td>短</td><td>高</td><td>0</td><td>高级</td><td>续签</td></tr>
+    <tr><td>12</td><td>老年</td><td>短</td><td>低</td><td>0</td><td>基础</td><td>不续签</td></tr>
+    <tr><td>13</td><td>青年</td><td>中</td><td>高</td><td>1</td><td>高级</td><td>续签</td></tr>
+    <tr><td>14</td><td>中年</td><td>中</td><td>中</td><td>0</td><td>基础</td><td>不续签</td></tr>
+    <tr><td>15</td><td>老年</td><td>长</td><td>高</td><td>≥2</td><td>高级</td><td>不续签</td></tr>
+    <tr><td>16</td><td>青年</td><td>短</td><td>低</td><td>0</td><td>基础</td><td>不续签</td></tr>
+    <tr><td>17</td><td>中年</td><td>中</td><td>高</td><td>0</td><td>基础</td><td>续签</td></tr>
+    <tr><td>18</td><td>老年</td><td>中</td><td>高</td><td>1</td><td>高级</td><td>续签</td></tr>
+    <tr><td>19</td><td>青年</td><td>长</td><td>中</td><td>0</td><td>高级</td><td>续签</td></tr>
+    <tr><td>20</td><td>中年</td><td>长</td><td>中</td><td>≥2</td><td>基础</td><td>不续签</td></tr>
+    </tbody>
+</table>
+
+
+<!-- ============= 第 1 层：根节点（整个数据集） ============= -->
+<h2>第 1 层：根节点（整个数据集）</h2>
+<div class="step">
+    <h3>1. 计算根节点的信息熵 \( Entropy(S) \)</h3>
+    <div class="formula">
+        总样本数 \( N = 20 \)  
+        续签样本数 \( N_{续签} = 9 \)（行 3、4、6、8、9、11、13、18、19）  
+        不续签样本数 \( N_{不续签} = 11 \)（剩余行）  
+
+        信息熵公式：  
+        \( Entropy(S) = -\sum_{i=1}^{n} p_i \log_2(p_i) \)  
+        其中 \( p_i \) 是类别 \( i \) 的概率（样本占比）
+
+        代入计算：  
+        \( Entropy(S) = -\left( \frac{9}{20} \log_2\left(\frac{9}{20}\right) + \frac{11}{20} \log_2\left(\frac{11}{20}\right) \right) \)  
+
+        分步计算：  
+        \( \frac{9}{20} = 0.45 \)，\( \log_2(0.45) \approx -1.152 \)，所以 \( 0.45 \times (-1.152) \approx -0.5184 \)  
+        \( \frac{11}{20} = 0.55 \)，\( \log_2(0.55) \approx -0.862 \)，所以 \( 0.55 \times (-0.862) \approx -0.4741 \)  
+
+        最终：  
+        \( Entropy(S) \approx -(-0.5184 - 0.4741) = 0.9925 \)
+    </div>
+
+    <h3>2. 计算所有特征的信息增益</h3>
+    <p>特征列表：年龄、服务时间、月消费、投诉次数、非保险费</p>
+    <div class="formula">
+        信息增益公式：  
+        \( InfoGain(S, 特征) = Entropy(S) - \sum_{v \in 特征取值} \frac{N_v}{N} \times Entropy(S_v) \)  
+        其中 \( S_v \) 是特征取 \( v \) 时的子集，\( N_v \) 是子集样本数
+    </div>
+
+    <!-- 特征：年龄 -->
+    <div class="step">
+        <h4>特征：年龄</h4>
+        <p>年龄取值：青年、中年、老年</p>
+        <table>
+            <thead><tr><th>年龄</th><th>样本数</th><th>续签数</th><th>不续签数</th></tr></thead>
+            <tbody>
+            <tr><td>青年</td><td>7</td><td>2</td><td>5</td></tr>
+            <tr><td>中年</td><td>7</td><td>5</td><td>2</td></tr>
+            <tr><td>老年</td><td>6</td><td>3</td><td>3</td></tr>
+            </tbody>
+        </table>
+
+        <div class="formula">
+            青年子集熵 \( Entropy(青年) = -\left( \frac{2}{7} \log_2\left(\frac{2}{7}\right) + \frac{5}{7} \log_2\left(\frac{5}{7}\right) \right) \approx 0.971 \)  
+            中年子集熵 \( Entropy(中年) = -\left( \frac{5}{7} \log_2\left(\frac{5}{7}\right) + \frac{2}{7} \log_2\left(\frac{2}{7}\right) \right) \approx 0.863 \)  
+            老年子集熵 \( Entropy(老年) = -\left( \frac{3}{6} \log_2\left(\frac{3}{6}\right) + \frac{3}{6} \log_2\left(\frac{3}{6}\right) \right) = 1.0 \)  
+
+            信息增益计算：  
+            \( InfoGain(年龄) = 0.9925 - \left( \frac{7}{20} \times 0.971 + \frac{7}{20} \times 0.863 + \frac{6}{20} \times 1.0 \right) \)  
+            \( = 0.9925 - (0.33985 + 0.30205 + 0.3) \)  
+            \( = 0.9925 - 0.9419 \approx 0.0506 \)
+        </div>
+    </div>
+
+    <!-- 特征：服务时间 -->
+    <div class="step">
+        <h4>特征：服务时间</h4>
+        <p>服务时间取值：短、中、长</p>
+        <table>
+            <thead><tr><th>服务时间</th><th>样本数</th><th>续签数</th><th>不续签数</th></tr></thead>
+            <tbody>
+            <tr><td>短</td><td>6</td><td>1</td><td>5</td></tr>
+            <tr><td>中</td><td>7</td><td>5</td><td>2</td></tr>
+            <tr><td>长</td><td>7</td><td>3</td><td>4</td></tr>
+            </tbody>
+        </table>
+
+        <div class="formula">
+            短子集熵 \( Entropy(短) = -\left( \frac{1}{6} \log_2\left(\frac{1}{6}\right) + \frac{5}{6} \log_2\left(\frac{5}{6}\right) \right) \approx 0.65 \)  
+            中子集熵 \( Entropy(中) = -\left( \frac{5}{7} \log_2\left(\frac{5}{7}\right) + \frac{2}{7} \log_2\left(\frac{2}{7}\right) \right) \approx 0.863 \)  
+            长子集熵 \( Entropy(长) = -\left( \frac{3}{7} \log_2\left(\frac{3}{7}\right) + \frac{4}{7} \log_2\left(\frac{4}{7}\right) \right) \approx 0.985 \)  
+
+            信息增益计算：  
+            \( InfoGain(服务时间) = 0.9925 - \left( \frac{6}{20} \times 0.65 + \frac{7}{20} \times 0.863 + \frac{7}{20} \times 0.985 \right) \)  
+            \( = 0.9925 - (0.195 + 0.30205 + 0.34475) \)  
+            \( = 0.9925 - 0.8418 \approx 0.1507 \)
+        </div>
+    </div>
+
+    <!-- 特征：月消费 -->
+    <div class="step">
+        <h4>特征：月消费</h4>
+        <p>月消费取值：低、中、高</p>
+        <table>
+            <thead><tr><th>月消费</th><th>样本数</th><th>续签数</th><th>不续签数</th></tr></thead>
+            <tbody>
+            <tr><td>低</td><td>4</td><td>0</td><td>4</td></tr>
+            <tr><td>中</td><td>7</td><td>3</td><td>4</td></tr>
+            <tr><td>高</td><td>9</td><td>6</td><td>3</td></tr>
+            </tbody>
+        </table>
+
+        <div class="formula">
+            低子集熵 \( Entropy(低) = -\left( \frac{0}{4} \log_2\left(\frac{0}{4}\right) + \frac{4}{4} \log_2\left(\frac{4}{4}\right) \right) = 0 \)  
+            中子集熵 \( Entropy(中) = -\left( \frac{3}{7} \log_2\left(\frac{3}{7}\right) + \frac{4}{7} \log_2\left(\frac{4}{7}\right) \right) \approx 0.985 \)  
+            高子集熵 \( Entropy(高) = -\left( \frac{6}{9} \log_2\left(\frac{6}{9}\right) + \frac{3}{9} \log_2\left(\frac{3}{9}\right) \right) \approx 0.918 \)  
+
+            信息增益计算：  
+            \( InfoGain(月消费) = 0.9925 - \left( \frac{4}{20} \times 0 + \frac{7}{20} \times 0.985 + \frac{9}{20} \times 0.918 \right) \)  
+            \( = 0.9925 - (0 + 0.34475 + 0.4131) \)  
+            \( = 0.9925 - 0.75785 \approx 0.23465 \)
+        </div>
+    </div>
+
+    <!-- 特征：投诉次数 -->
+    <div class="step">
+        <h4>特征：投诉次数</h4>
+        <p>投诉次数取值：0、1、≥2</p>
+        <table>
+            <thead><tr><th>投诉次数</th><th>样本数</th><th>续签数</th><th>不续签数</th></tr></thead>
+            <tbody>
+            <tr><td>0</td><td>10</td><td>6</td><td>4</td></tr>
+            <tr><td>1</td><td>6</td><td>3</td><td>3</td></tr>
+            <tr><td>≥2</td><td>4</td><td>0</td><td>4</td></tr>
+            </tbody>
+        </table>
+
+        <div class="formula">
+            0子集熵 \( Entropy(0) = -\left( \frac{6}{10} \log_2\left(\frac{6}{10}\right) + \frac{4}{10} \log_2\left(\frac{4}{10}\right) \right) \approx 0.971 \)  
+            1子集熵 \( Entropy(1) = -\left( \frac{3}{6} \log_2\left(\frac{3}{6}\right) + \frac{3}{6} \log_2\left(\frac{3}{6}\right) \right) = 1.0 \)  
+            ≥2子集熵 \( Entropy(≥2) = -\left( \frac{0}{4} \log_2\left(\frac{0}{4}\right) + \frac{4}{4} \log_2\left(\frac{4}{4}\right) \right) = 0 \)  
+
+            信息增益计算：  
+            \( InfoGain(投诉次数) = 0.9925 - \left( \frac{10}{20} \times 0.971 + \frac{6}{20} \times 1.0 + \frac{4}{20} \times 0 \right) \)  
+            \( = 0.9925 - (0.4855 + 0.3 + 0) \)  
+            \( = 0.9925 - 0.7855 \approx 0.207 \)
+        </div>
+    </div>
+
+    <!-- 特征：非保险费 -->
+    <div class="step">
+        <h4>特征：非保险费</h4>
+        <p>非保险费取值：基础、高级</p>
+        <table>
+            <thead><tr><th>非保险费</th><th>样本数</th><th>续签数</th><th>不续签数</th></tr></thead>
+            <tbody>
+            <tr><td>基础</td><td>10</td><td>3</td><td>7</td></tr>
+            <tr><td>高级</td><td>10</td><td>6</td><td>4</td></tr>
+            </tbody>
+        </table>
+
+        <div class="formula">
+            基础子集熵 \( Entropy(基础) = -\left( \frac{3}{10} \log_2\left(\frac{3}{10}\right) + \frac{7}{10} \log_2\left(\frac{7}{10}\right) \right) \approx 0.881 \)  
+            高级子集熵 \( Entropy(高级) = -\left( \frac{6}{10} \log_2\left(\frac{6}{10}\right) + \frac{4}{10} \log_2\left(\frac{4}{10}\right) \right) \approx 0.971 \)  
+
+            信息增益计算：  
+            \( InfoGain(非保险费) = 0.9925 - \left( \frac{10}{20} \times 0.881 + \frac{10}{20} \times 0.971 \right) \)  
+            \( = 0.9925 - (0.4405 + 0.4855) \)  
+            \( = 0.9925 - 0.926 \approx 0.0665 \)
+        </div>
+    </div>
+
+    <h3>3. 选择最优划分特征</h3>
+    <div class="step">
+        <table>
+            <thead><tr><th>特征</th><th>信息增益</th></tr></thead>
+            <tbody>
+            <tr><td>年龄</td><td>0.0506</td></tr>
+            <tr><td>服务时间</td><td>0.1507</td></tr>
+            <tr><td>月消费</td><td>0.23465</td></tr>
+            <tr><td>投诉次数</td><td>0.207</td></tr>
+            <tr><td>非保险费</td><td>0.0665</td></tr>
+            </tbody>
+        </table>
+        <p class="highlight">月消费的信息增益最大（0.23465），所以选择月消费作为根节点的划分特征。</p>
+    </div>
+</div>
+
+
+<!-- ============= 第 2 层：基于月消费划分 ============= -->
+<h2>第 2 层：基于月消费划分</h2>
+
+<!-- 月消费=低 -->
+<div class="tree-node">
+    <h3>分支：月消费=低（样本数=4）</h3>
+    <p>该子集全部为不续签样本，已为纯节点，无需继续划分。</p>
+    <p class="highlight">决策：不续签</p>
+</div>
+
+<!-- 月消费=中 -->
+<div class="tree-node">
+    <h3>分支：月消费=中（样本数=7）</h3>
+    <div class="step">
+        <h4>1. 计算子集的信息熵</h4>
+        <div class="formula">
+            续签数 \( = 3 \)，不续签数 \( = 4 \)  
+
+            \( Entropy(S) = -\left( \frac{3}{7} \log_2\left(\frac{3}{7}\right) + \frac{4}{7} \log_2\left(\frac{4}{7}\right) \right) \approx 0.985 \)
+        </div>
+
+        <h4>2. 计算剩余特征的信息增益（排除已使用的月消费）</h4>
+        <!-- 此处省略详细计算过程，仅展示结果 -->
+        <table>
+            <thead><tr><th>特征</th><th>信息增益</th></tr></thead>
+            <tbody>
+            <tr><td>年龄</td><td>0.276</td></tr>
+            <tr><td>服务时间</td><td>0.019</td></tr>
+            <tr><td>投诉次数</td><td>0.151</td></tr>
+            <tr><td>非保险费</td><td>0.019</td></tr>
+            </tbody>
+        </table>
+        <p class="highlight">年龄的信息增益最大（0.276），所以选择年龄作为该节点的划分特征。</p>
+    </div>
+
+    <!-- 第 3 层：基于年龄划分 -->
+    <div class="tree-branch">
+        <h3>第 3 层：基于年龄划分</h3>
+
+        <!-- 年龄=青年 -->
+        <div class="tree-node leaf">
+            <h3>分支：年龄=青年（样本数=3）</h3>
+            <p>该子集全部为不续签样本，已为纯节点，无需继续划分。</p>
+            <p class="highlight">决策：不续签</p>
+        </div>
+
+        <!-- 年龄=中年 -->
+        <div class="tree-node leaf">
+            <h3>分支：年龄=中年（样本数=2）</h3>
+            <p>该子集全部为不续签样本，已为纯节点，无需继续划分。</p>
+            <p class="highlight">决策：不续签</p>
+        </div>
+
+        <!-- 年龄=老年 -->
+        <div class="tree-node leaf">
+            <h3>分支：年龄=老年（样本数=2）</h3>
+            <p>该子集全部为续签样本，已为纯节点，无需继续划分。</p>
+            <p class="highlight">决策：续签</p>
+        </div>
+    </div>
+</div>
+
+<!-- 月消费=高 -->
+<div class="tree-node">
+    <h3>分支：月消费=高（样本数=9）</h3>
+    <div class="step">
+        <h4>1. 计算子集的信息熵</h4>
+        <div class="formula">
+            续签数 \( = 6 \)，不续签数 \( = 3 \)  
+
+            \( Entropy(S) = -\left( \frac{6}{9} \log_2\left(\frac{6}{9}\right) + \frac{3}{9} \log_2\left(\frac{3}{9}\right) \right) \approx 0.918 \)
+        </div>
+
+        <h4>2. 计算剩余特征的信息增益（排除已使用的月消费）</h4>
+        <!-- 此处省略详细计算过程，仅展示结果 -->
+        <table>
+            <thead><tr><th>特征</th><th>信息增益</th></tr></thead>
+            <tbody>
+            <tr><td>年龄</td><td>0.011</td></tr>
+            <tr><td>服务时间</td><td>0.011</td></tr>
+            <tr><td>投诉次数</td><td>0.439</td></tr>
+            <tr><td>非保险费</td><td>0.011</td></tr>
+            </tbody>
+        </table>
+        <p class="highlight">投诉次数的信息增益最大（0.439），所以选择投诉次数作为该节点的划分特征。</p>
+    </div>
+
+    <!-- 第 3 层：基于投诉次数划分 -->
+    <div class="tree-branch">
+        <h3>第 3 层：基于投诉次数划分</h3>
+
+        <!-- 投诉次数=0 -->
+        <div class="tree-node leaf">
+            <h3>分支：投诉次数=0（样本数=5）</h3>
+            <p>该子集全部为续签样本，已为纯节点，无需继续划分。</p>
+            <p class="highlight">决策：续签</p>
+        </div>
+
+        <!-- 投诉次数=1 -->
+        <div class="tree-node leaf">
+            <h3>分支：投诉次数=1（样本数=3）</h3>
+            <p>该子集全部为续签样本，已为纯节点，无需继续划分。</p>
+            <p class="highlight">决策：续签</p>
+        </div>
+
+        <!-- 投诉次数≥2 -->
+        <div class="tree-node leaf">
+            <h3>分支：投诉次数≥2（样本数=1）</h3>
+            <p>该子集全部为不续签样本，已为纯节点，无需继续划分。</p>
+            <p class="highlight">决策：不续签</p>
+        </div>
+    </div>
+</div>
+
+
+<!-- ============= 最终决策树可视化 ============= -->
+<h2>最终决策树结构</h2>
+<div class="step">
+    <div class="tree-node decision">
+        <h3>根节点：月消费</h3>
+        <div class="tree-branch">
+            <div class="tree-line">
+                <div class="tree-node leaf">
+                    <h3>月消费=低 → 决策：不续签</h3>
+                </div>
+            </div>
+            <div class="tree-line">
+                <div class="tree-node decision">
+                    <h3>月消费=中 → 划分特征：年龄</h3>
+                    <div class="tree-branch">
+                        <div class="tree-line">
+                            <div class="tree-node leaf">
+                                <h3>年龄=青年 → 决策：不续签</h3>
+                            </div>
+                        </div>
+                        <div class="tree-line">
+                            <div class="tree-node leaf">
+                                <h3>年龄=中年 → 决策：不续签</h3>
+                            </div>
+                        </div>
+                        <div class="tree-line">
+                            <div class="tree-node leaf">
+                                <h3>年龄=老年 → 决策：续签</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="tree-line">
+                <div class="tree-node decision">
+                    <h3>月消费=高 → 划分特征：投诉次数</h3>
+                    <div class="tree-branch">
+                        <div class="tree-line">
+                            <div class="tree-node leaf">
+                                <h3>投诉次数=0 → 决策：续签</h3>
+                            </div>
+                        </div>
+                        <div class="tree-line">
+                            <div class="tree-node leaf">
+                                <h3>投诉次数=1 → 决策：续签</h3>
+                            </div>
+                        </div>
+                        <div class="tree-line">
+                            <div class="tree-node leaf">
+                                <h3>投诉次数≥2 → 决策：不续签</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- ============= 信息增益可视化 ============= -->
+<h2>信息增益可视化</h2>
+<canvas id="infoGainChart" width="800" height="400"></canvas>
+
+<script>
+    // 绘制信息增益柱状图
+    document.addEventListener('DOMContentLoaded', function() {
+        const ctx = document.getElementById('infoGainChart').getContext('2d');
+        
+        // 根节点各特征的信息增益
+        const rootData = {
+            labels: ['年龄', '服务时间', '月消费', '投诉次数', '非保险费'],
+            datasets: [{
+                label: '根节点信息增益',
+                data: [0.0506, 0.1507, 0.23465, 0.207, 0.0665],
+                backgroundColor: [
+                    'rgba(255, 99, 132, 0.7)',
+                    'rgba(54, 162, 235, 0.7)',
+                    'rgba(255, 206, 86, 0.7)',
+                    'rgba(75, 192, 192, 0.7)',
+                    'rgba(153, 102, 255, 0.7)'
+                ],
+                borderColor: [
+                    'rgb(255, 99, 132)',
+                    'rgb(54, 162, 235)',
+                    'rgb(255, 206, 86)',
+                    'rgb(75, 192, 192)',
+                    'rgb(153, 102, 255)'
+                ],
+                borderWidth: 1
+            }]
+        };
+        
+        // 创建图表
+        new Chart(ctx, {
+            type: 'bar',
+            data: rootData,
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: '信息增益'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: '特征'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `信息增益: ${context.raw.toFixed(4)}`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+
+</body>
+</html>

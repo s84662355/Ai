@@ -25,7 +25,7 @@ func distance(p1, p2 Point) float64 {
 func generateClusteredPoints(total int, clusters int) []Point {
 	rand.Seed(time.Now().UnixNano())
 	points := make([]Point, 0, total)
-	
+
 	// 生成几个密集聚类中心
 	centers := make([]Point, clusters)
 	for i := 0; i < clusters; i++ {
@@ -34,7 +34,7 @@ func generateClusteredPoints(total int, clusters int) []Point {
 			Y: 20 + rand.Float64()*60,
 		}
 	}
-	
+
 	// 围绕每个中心生成点
 	pointsPerCluster := total / clusters
 	for _, c := range centers {
@@ -46,7 +46,7 @@ func generateClusteredPoints(total int, clusters int) []Point {
 			})
 		}
 	}
-	
+
 	// 补充剩余点
 	for len(points) < total {
 		points = append(points, Point{
@@ -54,20 +54,20 @@ func generateClusteredPoints(total int, clusters int) []Point {
 			Y: 10 + rand.Float64()*80,
 		})
 	}
-	
+
 	return points
 }
 
 // 均值漂移算法结构体（包含动画状态）
 type MeanShift struct {
-	points       []Point       // 原始数据点
-	modes        []Point       // 每个点的漂移终点（模式点）
-	currentModes []Point       // 当前漂移位置（用于动画）
-	labels       []int         // 聚类标签
-	bandwidth    float64       // 带宽（核函数半径）
-	iterations   int           // 总迭代次数
-	currentStep  int           // 当前动画步骤
-	converged    bool          // 是否收敛
+	points       []Point // 原始数据点
+	modes        []Point // 每个点的漂移终点（模式点）
+	currentModes []Point // 当前漂移位置（用于动画）
+	labels       []int   // 聚类标签
+	bandwidth    float64 // 带宽（核函数半径）
+	iterations   int     // 总迭代次数
+	currentStep  int     // 当前动画步骤
+	converged    bool    // 是否收敛
 }
 
 func NewMeanShift(points []Point, bandwidth float64) *MeanShift {
@@ -81,11 +81,11 @@ func NewMeanShift(points []Point, bandwidth float64) *MeanShift {
 		currentStep:  0,
 		converged:    false,
 	}
-	
+
 	// 初始化模式点为原始点（漂移起点）
 	copy(ms.modes, points)
 	copy(ms.currentModes, points)
-	
+
 	return ms
 }
 
@@ -93,13 +93,13 @@ func NewMeanShift(points []Point, bandwidth float64) *MeanShift {
 func (ms *MeanShift) Step() bool {
 	converged := true
 	bandwidthSq := ms.bandwidth * ms.bandwidth // 带宽平方（优化计算）
-	
+
 	// 对每个点执行一次漂移计算
 	for i := range ms.modes {
 		currentMode := ms.modes[i]
 		sumX, sumY := 0.0, 0.0
 		totalWeight := 0.0
-		
+
 		// 计算带宽范围内的加权平均
 		for _, p := range ms.points {
 			distSq := (p.X-currentMode.X)*(p.X-currentMode.X) + (p.Y-currentMode.Y)*(p.Y-currentMode.Y)
@@ -111,14 +111,14 @@ func (ms *MeanShift) Step() bool {
 				totalWeight += weight
 			}
 		}
-		
+
 		// 计算新的模式点
 		if totalWeight > 0 {
 			newMode := Point{
 				X: sumX / totalWeight,
 				Y: sumY / totalWeight,
 			}
-			
+
 			// 检查是否收敛（移动距离小于阈值）
 			if distance(newMode, currentMode) > 0.01 {
 				ms.modes[i] = newMode
@@ -126,7 +126,7 @@ func (ms *MeanShift) Step() bool {
 			}
 		}
 	}
-	
+
 	ms.iterations++
 	return converged
 }
@@ -138,12 +138,12 @@ func (ms *MeanShift) UpdateAnimation(progress float64) {
 		ms.currentModes[i].X = ms.points[i].X + (ms.modes[i].X-ms.points[i].X)*progress
 		ms.currentModes[i].Y = ms.points[i].Y + (ms.modes[i].Y-ms.points[i].Y)*progress
 	}
-	
+
 	// 收敛后计算聚类标签（合并相似的模式点）
 	if ms.converged {
 		clusterID := 0
 		clusterCenters := make([]Point, 0)
-		
+
 		for i := range ms.labels {
 			found := false
 			// 检查是否与已有聚类中心相似
@@ -190,7 +190,7 @@ func (g *Game) Update() error {
 	if g.ms.converged {
 		return nil
 	}
-	
+
 	// 动画进度更新
 	g.animProg += g.animSpeed
 	if g.animProg >= 1.0 {
@@ -199,7 +199,7 @@ func (g *Game) Update() error {
 		g.ms.converged = g.ms.Step()
 		g.ms.currentStep++
 	}
-	
+
 	// 更新当前动画帧的显示状态
 	g.ms.UpdateAnimation(g.animProg)
 	return nil
@@ -212,18 +212,18 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	// 定义聚类颜色
 	// 定义聚类颜色
 	colors := []color.Color{
-		color.RGBA{255, 0, 0, 255},    // 红色
-		color.RGBA{0, 255, 0, 255},    // 绿色
-		color.RGBA{0, 0, 255, 255},    // 蓝色
-		color.RGBA{255, 165, 0, 255},  // 橙色
-		color.RGBA{128, 0, 128, 255},  // 紫色
-		color.RGBA{0, 255, 255, 255},  // 青色
-		color.RGBA{255, 255, 0, 255},  // 黄色
+		color.RGBA{255, 0, 0, 255},     // 红色
+		color.RGBA{0, 255, 0, 255},     // 绿色
+		color.RGBA{0, 0, 255, 255},     // 蓝色
+		color.RGBA{255, 165, 0, 255},   // 橙色
+		color.RGBA{128, 0, 128, 255},   // 紫色
+		color.RGBA{0, 255, 255, 255},   // 青色
+		color.RGBA{255, 255, 0, 255},   // 黄色
 		color.RGBA{128, 128, 128, 255}, // 灰色
-		color.RGBA{18, 218, 18, 255},  
-		color.RGBA{181, 28, 8, 255}, 
-		color.RGBA{81, 32, 48, 255},  
-		color.RGBA{231,54, 88, 255},  
+		color.RGBA{18, 218, 18, 255},
+		color.RGBA{181, 28, 8, 255},
+		color.RGBA{81, 32, 48, 255},
+		color.RGBA{231, 54, 88, 255},
 	}
 
 	// 绘制原始数据点（灰色小点点）
@@ -258,7 +258,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			// 收敛前用统一颜色
 			c = color.RGBA{0, 0, 255, 200}
 		}
-		
+
 		x := int(m.X * float64(g.width) / 100)
 		y := int(m.Y * float64(g.height) / 100)
 		for dx := -2; dx <= 2; dx++ {
@@ -316,7 +316,7 @@ func abs(x int) int {
 func main() {
 	// 生成100个带聚类特性的点（3个自然聚类）
 	points := generateClusteredPoints(600, 5)
-	
+
 	// 初始化均值漂移（带宽设为8.0，控制聚类粒度）
 	game := NewGame(points, 5)
 	ebiten.SetWindowSize(game.width, game.height)

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Go 代码说明 - 椭圆拟合动画</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            color: #333;
+        }
+        h1, h2, h3 {
+            color: #1a365d;
+        }
+        pre {
+            background-color: #f7f7f7;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        code {
+            font-family: Consolas, Monaco, 'Andale Mono', monospace;
+            font-size: 0.9em;
+            color: #c7254e;
+            background-color: #f9f2f4;
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+        pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+        }
+        .algorithm-explanation {
+            background-color: #e6f7ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .formula {
+            font-family: 'Times New Roman', serif;
+            font-size: 1.1em;
+            font-style: italic;
+            text-align: center;
+            margin: 15px 0;
+        }
+        .step {
+            margin-bottom: 15px;
+        }
+        .step-number {
+            font-weight: bold;
+            color: #1a365d;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Go 代码说明 - 椭圆拟合动画</h1>
+    <p>此 Go 代码实现了一个椭圆拟合动画，借助梯度下降算法持续优化椭圆方程的参数，让其尽可能契合给定的带标签坐标点。下面是对代码各部分的详细说明：</p>
+
+    <!-- 原有的代码说明保持不变 -->
+
+    <h2>8. 辅助函数</h2>
+    <ul>
+        <li><code>drawAxes</code>：绘制坐标轴和刻度。</li>
+        <li><code>drawPoints</code>：绘制所有带标签的坐标点，根据标签设置不同的颜色。</li>
+        <li><code>drawCurve</code>：绘制当前拟合的椭圆曲线，通过网格采样找到曲线上的点并连接。</li>
+        <li><code>drawInfo</code>：显示训练信息，包括迭代次数、损失值和椭圆方程的参数。</li>
+        <li><code>sigmoid</code>：实现 sigmoid 函数，用于将值映射到概率。</li>
+        <li><code>computeLoss</code>：计算交叉熵损失，评估模型的拟合效果。</li>
+        <li><code>computeGradient</code>：计算梯度向量，用于梯度下降算法更新参数。</li>
+        <li><code>train</code>：梯度下降训练函数，根据给定的学习率和迭代次数进行训练。</li>
+    </ul>
+
+    <div class="algorithm-explanation">
+        <h2>椭圆拟合算法详细说明</h2>
+        
+        <h3>1. 椭圆方程表示</h3>
+        <p>算法使用一般二次曲线方程表示椭圆：</p>
+        <div class="formula">Ax² + By² + Dx + Ey + F = 0</div>
+        <p>其中参数 A、B、D、E、F 决定了椭圆的形状、大小和位置。</p>
+        
+        <h3>2. 点到椭圆的分类</h3>
+        <p>对于任意点 (x, y)，计算其代数距离：</p>
+        <div class="formula">d = Ax² + By² + Dx + Ey + F</div>
+        <p>根据 d 的符号判断点是否在椭圆内：</p>
+        <ul>
+            <li>d > 0：点在椭圆外</li>
+            <li>d = 0：点在椭圆上</li>
+            <li>d < 0：点在椭圆内</li>
+        </ul>
+        
+        <h3>3. 二分类模型</h3>
+        <p>算法将椭圆拟合问题转化为二分类问题：</p>
+        <ul>
+            <li>标签 1：点在椭圆内</li>
+            <li>标签 0：点在椭圆外</li>
+        </ul>
+        <p>使用 sigmoid 函数将代数距离转换为概率：</p>
+        <div class="formula">P(class=1) = σ(-d) = 1 / (1 + e^d)</div>
+        
+        <h3>4. 损失函数</h3>
+        <p>采用二元交叉熵损失函数：</p>
+        <div class="formula">L = - [y·log(P) + (1-y)·log(1-P)]</div>
+        <p>其中 y 是真实标签，P 是预测概率。</p>
+        
+        <h3>5. 梯度下降优化</h3>
+        <p>算法通过计算损失函数对各参数的偏导数来更新参数：</p>
+        <div class="formula">∂L/∂A = (P-y)·(-x²)<br>
+        ∂L/∂B = (P-y)·(-y²)<br>
+        ∂L/∂D = (P-y)·(-x)<br>
+        ∂L/∂E = (P-y)·(-y)<br>
+        ∂L/∂F = (P-y)·(-1)</div>
+        <p>参数更新规则：</p>
+        <div class="formula">θ = θ - α·∂L/∂θ</div>
+        <p>其中 θ 代表参数 A、B、D、E、F，α 是学习率。</p>
+        
+        <h3>6. 算法流程</h3>
+        <ol>
+            <li class="step"><span class="step-number">初始化：</span>随机初始化参数 A、B、D、E、F</li>
+            <li class="step"><span class="step-number">迭代优化：</span>
+                <ul>
+                    <li>计算每个点到当前椭圆的代数距离</li>
+                    <li>通过 sigmoid 函数将距离转换为概率</li>
+                    <li>计算交叉熵损失</li>
+                    <li>计算损失对各参数的梯度</li>
+                    <li>根据梯度更新参数</li>
+                </ul>
+            </li>
+            <li class="step"><span class="step-number">终止条件：</span>达到最大迭代次数或损失收敛</li>
+        </ol>
+    </div>
+
+    <p>综上所述，该代码通过梯度下降算法不断优化椭圆方程的参数，使其尽可能拟合给定的带标签坐标点，并通过 <code>ebiten</code> 库实现了动画效果，实时展示训练过程和拟合结果。</p>
+</body>
+
+</html>

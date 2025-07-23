@@ -51,9 +51,9 @@ var (
 	numIterations = 50000
 	step          = 0
 	ttfFont       font.Face
-	lastUpdate    time.Time // 记录上次更新时间
+	lastUpdate    time.Time                      // 记录上次更新时间
 	ta, tb, tc    float64   = 1.234, -3.54, 2.45 // 真实参数
-	Sigma         float64   = 2.0                 // 噪声水平
+	Sigma         float64   = 2.0                // 噪声水平
 )
 
 // 初始化随机数生成器
@@ -67,7 +67,7 @@ func initData(numSamples int) {
 	for i := 0; i < numSamples; i++ {
 		x := rand.Float64()*(xMax-xMin) + xMin
 		eps := distuv.Normal{Mu: 0, Sigma: Sigma}.Rand() // 高斯噪声
-		y := ta*x*x + tb*x + tc + eps     // 真实函数+噪声
+		y := ta*x*x + tb*x + tc + eps                    // 真实函数+噪声
 		data = append(data, []float64{x, y})
 	}
 }
@@ -87,17 +87,17 @@ func Mse(a, b, c float64, points [][]float64) float64 {
 func StepGradient(a, b, c float64, points [][]float64, lr float64) (float64, float64, float64) {
 	aGrad, bGrad, cGrad := 0.0, 0.0, 0.0
 	M := float64(len(points))
-	
+
 	for _, p := range points {
 		x, y := p[0], p[1]
 		err := a*x*x + b*x + c - y
-		
+
 		// 计算各参数的梯度
 		aGrad += (2 / M) * x * x * err
 		bGrad += (2 / M) * x * err
 		cGrad += (2 / M) * err
 	}
-	
+
 	// 更新参数
 	return a - lr*aGrad, b - lr*bGrad, c - lr*cGrad
 }
@@ -250,12 +250,12 @@ func drawCurve(screen *ebiten.Image, a, b, c float64, color color.Color) {
 		y := a*x*x + b*x + c
 		x1Screen := (x - xMin) / (xMax - xMin) * screenWidth
 		y1Screen := (yMax - y) / (yMax - yMin) * screenHeight
-		
+
 		x2 := x + step
 		y2 := a*x2*x2 + b*x2 + c
 		x2Screen := (x2 - xMin) / (xMax - xMin) * screenWidth
 		y2Screen := (yMax - y2) / (yMax - yMin) * screenHeight
-		
+
 		ebitenutil.DrawLine(screen, x1Screen, y1Screen, x2Screen, y2Screen, color)
 	}
 }
